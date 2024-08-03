@@ -1,0 +1,124 @@
+version: '3'
+
+networks:
+  default:
+    name: ${COMPOSE_PROJECT_NAME:-astrio-laravel}-net
+    driver: bridge
+  dev-proxy:
+    external: true
+
+volumes:
+  db-data:
+  redis-data:
+  elastic-data:
+
+services:
+  app:
+    image: registry.dev-mage3.com/developers/astrio-laravel:image-tag
+    container_name: ${COMPOSE_PROJECT_NAME:-astrio-laravel}-app
+    networks:
+      - default
+      - dev-proxy
+    environment: &appenvironment
+      STAND: "dev"
+      APP_URL: https://${VHOST}
+      DB_HOST: ${COMPOSE_PROJECT_NAME:-astrio-laravel}-${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
+      DB_PASS: ${DB_PASS:-tmp}
+      DB_NAME: ${DB_NAME:-laravel}
+      ELASTIC_HOST: ${ELS_HOST:-elasticsearch}
+      ELASTIC_PORT: ${ELS_PORT:-9200}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    volumes: &appvolumes
+      - ./storage:/var/www/html/storage
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=dev-proxy
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME:-astrio-laravel}-app.rule=Host(`${VHOST}`)
+      - traefik.http.services.${COMPOSE_PROJECT_NAME:-astrio-laravel}-app.loadbalancer.server.port=80
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME:-astrio-laravel}-app.entrypoints=websecure
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME:-astrio-laravel}-app.tls.certresolver=myresolver
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME:-astrio-laravel}-app.middlewares=traefik-compress,auth
+      - traefik.http.middlewares.traefik-compress.compress=true
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME:-astrio-laravel}-app-graphql.rule=(Host(`${VHOST}`) && Path(`/graphql`))
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME:-astrio-laravel}-app-graphql.entrypoints=websecure
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME:-astrio-laravel}-app-graphql.tls.certresolver=myresolver
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME:-astrio-laravel}-app-graphql.middlewares=traefik-compress
+    restart: always
+
+  workers:
+    image: registry.dev-mage3.com/developers/astrio-laravel:image-tag
+    container_name: ${COMPOSE_PROJECT_NAME:-astrio-laravel}-worker
+    volumes: *appvolumes
+    environment:
+      <<: *appenvironment
+      APP_TYPE: "worker"
+    restart: always
+
+  db:
+    image: mariadb:10.11
+    container_name: ${COMPOSE_PROJECT_NAME:-astrio-laravel}-db
+    environment:
+        MYSQL_ROOT_PASSWORD: ${DB_PASS:-tmp}
+        MYSQL_DATABASE: ${DB_NAME:-laravel}
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./docker/sql:/docker-entrypoint-initdb.d
+    restart: always
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-astrio-laravel}-redis
+    command: [ redis-server, --maxmemory, 128mb, --maxmemory-policy, volatile-lru ]
+    volumes:
+      - redis-data:/data
+    restart: always
+
+  pma:
+    image: phpmyadmin/phpmyadmin
+    container_name: ${COMPOSE_PROJECT_NAME:-astrio-laravel}-pma
+    depends_on:
+      - db
+    environment:
+      PMA_HOST: ${COMPOSE_PROJECT_NAME:-astrio-laravel}-${DB_HOST:-db}
+      PMA_USER: ${DB_USER:-root}
+      PMA_PASSWORD: ${DB_PASS:-tmp}
+      PMA_ARBITRARY: 0
+      UPLOAD_LIMIT: 1047527424
+    expose:
+      - 80
+    networks:
+      - default
+      - dev-proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=dev-proxy
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME:-astrio-laravel}-pma.rule=Host(`pma-${VHOST}`)
+      - traefik.http.services.${COMPOSE_PROJECT_NAME:-astrio-laravel}-pma.loadbalancer.server.port=80
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME:-astrio-laravel}-pma.entrypoints=websecure
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME:-astrio-laravel}-pma.tls.certresolver=myresolver
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME:-astrio-laravel}-pma.middlewares=traefik-compress,auth
+      - traefik.http.middlewares.traefik-compress.compress=true
+    restart: always
+
+  elasticsearch:
+    image: elasticsearch:8.8.2
+    container_name: ${COMPOSE_PROJECT_NAME:-astrio-laravel}-elastic
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1G -Xmx1G"
+      - "ES_HEAP_SIZE=1G"
+      - "http.host=0.0.0.0"
+      - "transport.host=127.0.0.1"
+      - "xpack.security.enabled=false"
+      - "cluster.routing.allocation.disk.threshold_enabled=false"
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    restart: always

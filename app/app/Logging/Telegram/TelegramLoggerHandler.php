@@ -13,6 +13,7 @@ use Monolog\LogRecord;
 final class TelegramLoggerHandler extends AbstractProcessingHandler
 {
     private int $chatId;
+
     private string $token;
 
     public function __construct(array $config)
@@ -25,11 +26,11 @@ final class TelegramLoggerHandler extends AbstractProcessingHandler
         $this->token = $config['token'];
     }
 
-
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
-    #[NoReturn] protected function write(LogRecord $record): void
+    #[NoReturn]
+    protected function write(LogRecord $record): void
     {
         TelegramBotApi::sendMessage($this->token, $this->chatId, $record->formatted);
     }

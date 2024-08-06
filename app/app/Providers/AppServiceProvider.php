@@ -41,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
         DB::whenQueryingForLongerThan(500, function (Connection $connection, QueryExecuted $event) {
             logger()
                 ->channel('telegram')
-                ->debug('whenQueryingForLongerThan: '. $connection->query()->toSql(), $connection->query()->bindings);
+                ->debug('whenQueryingForLongerThan: '.$connection->query()->toSql(), $connection->query()->bindings);
         });
 
         RateLimiter::for('global', function (Request $request) {
@@ -59,7 +59,7 @@ class AppServiceProvider extends ServiceProvider
             function () {
                 logger()
                     ->channel('telegram')
-                    ->debug('whenRequestLifecycleIsLongerThan: ' . request()->url());
+                    ->debug('whenRequestLifecycleIsLongerThan: '.request()->url());
             }
         );
     }

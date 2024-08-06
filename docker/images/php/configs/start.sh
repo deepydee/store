@@ -29,7 +29,7 @@ fi
 
 if [[ "${STAND}" = "loc" ]]; then
    echo -e "\e[Publishing telescope migrations\e[0m"
-   php artisan vendor:publish --tag=telescope-migrations
+#   php artisan vendor:publish --tag=telescope-migrations
 fi
 
 if [[ "${APP_TYPE}" != "worker" ]]; then

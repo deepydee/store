@@ -10,8 +10,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('{{ table }}', function (Blueprint $table) {
+        Schema::create('categories', static function (Blueprint $table) {
             $table->id();
+            $table->string('title');
+            $table->string('slug')->unique();
             $table->timestamps();
         });
     }
@@ -19,7 +21,7 @@ return new class extends Migration
     public function down(): void
     {
         if (app()->isLocal()) {
-            Schema::dropIfExists('{{ table }}');
+            Schema::dropIfExists('categories');
         }
     }
 };

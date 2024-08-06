@@ -140,6 +140,11 @@
       <path value="$PROJECT_DIR$/app/vendor/fidry/cpu-core-counter" />
       <path value="$PROJECT_DIR$/app/vendor/brianium/paratest" />
       <path value="$PROJECT_DIR$/app/vendor/jean85/pretty-package-versions" />
+      <path value="$PROJECT_DIR$/app/vendor/symfony/options-resolver" />
+      <path value="$PROJECT_DIR$/app/vendor/symfony/psr-http-message-bridge" />
+      <path value="$PROJECT_DIR$/app/vendor/nyholm/psr7" />
+      <path value="$PROJECT_DIR$/app/vendor/sentry/sentry" />
+      <path value="$PROJECT_DIR$/app/vendor/sentry/sentry-laravel" />
     </include_path>
   </component>
   <component name="PhpInterpreters">
